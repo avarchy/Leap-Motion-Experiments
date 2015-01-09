@@ -1,0 +1,159 @@
+# Adithya Venkatesan
+# keyboard
+# need to work on getting key presses to work
+#  
+#
+
+from Tkinter import *
+from sys import exit
+import math
+
+import Leap, sys
+from Leap import CircleGesture, KeyTapGesture, ScreenTapGesture, SwipeGesture
+
+w,h= 975,400
+x,y,dx,dy=100,100,199,199
+fingdisplist = []
+scaling = 3.0
+
+def quit(evnt):
+	exit(0)
+
+class SampleListener(Leap.Listener):
+    def on_init(self, controller):
+        print "Initialized"
+
+    def on_connect(self, controller):
+        print "Connected"
+
+        # Enable gestures
+        controller.enable_gesture(Leap.Gesture.TYPE_CIRCLE);
+        controller.enable_gesture(Leap.Gesture.TYPE_KEY_TAP);
+        controller.enable_gesture(Leap.Gesture.TYPE_SCREEN_TAP);
+        controller.enable_gesture(Leap.Gesture.TYPE_SWIPE);
+
+    def on_disconnect(self, controller):
+        # Note: not dispatched when running in a debugger.
+        print "Disconnected"
+
+    def on_exit(self, controller):
+        print "Exited"
+    
+    def on_frame(self, controller):
+        # Get the most recent frame and report some basic information
+        global fingdisplist
+
+        #use find_overlapping(x1,y1,x2,y2) to find rectangle that it is inside
+        #use a bounding box that is tall enough that it goes a little past the height of a key
+        #then check each of the tuples for left <= x <= right, top <= y <= bottom
+        #if any satisfy, it is hitting that key => set the key a different shade for a sec and register the letters
+                
+        for pointable in frame.pointables:
+            normalizedPosition = interactionBox.normalize_point(pointable.tip_position)
+            if(pointable.touch_distance > 0 and pointable.touch_zone != Leap.Pointable.ZONE_NONE):
+                color = self.rgb_to_hex((0, 255 - 255 * pointable.touch_distance, 0))
+
+            elif(pointable.touch_distance <= 0):
+                color = self.rgb_to_hex((-255 * pointable.touch_distance, 0, 0))
+                #color = self.rgb_to_hex((255,0,0))
+
+            else:
+                color = self.rgb_to_hex((0,0,200))
+
+            self.draw(normalizedPosition.x * 800, 600 - normalizedPosition.y * 600, 40, 40, color)
+
+    def draw(self, x, y, width, height, color):
+        self.paintCanvas.create_oval( x, y, x + width, y + height, fill = color, outline = "")
+
+    def set_canvas(self, canvas):
+        self.paintCanvas = canvas
+
+    def rgb_to_hex(self, rgb):
+        return '#%02x%02x%02x' % rgb
+        for finger in fingdisplist:
+                canvas.delete(finger)
+                fingdisplist = []
+        frame = controller.frame()
+
+        ##print "Frame id: %d, timestamp: %d, hands: %d, fingers: %d, tools: %d, gestures: %d" % (
+        ##      frame.id, frame.timestamp, len(frame.hands), len(frame.fingers), len(frame.tools), len(frame.gestures()))
+
+        if not frame.hands.is_empty:
+            # Get the first hand
+            for hand in frame.hands:
+                # Check if the hand has any fingers
+                fingers = hand.fingers
+                if not fingers.is_empty:
+                    # Calculate the hand's average finger tip position
+                    avg_pos = Leap.Vector()
+                    for finger in fingers:
+                        fingdisplist.append(canvas.create_oval( w/2+scaling*(finger.tip_position[0]), h/2+scaling*(finger.tip_position[2]) , w/2+scaling*(finger.tip_position[0])+circlediameter , h/2+scaling*(finger.tip_position[2])+circlediameter,fill='blue',outline=''))
+                        #fingdisplist.append(a)
+                        ##avg_pos += finger.tip_position
+                        ##avg_pos /= len(fingers)
+                        #canvas.delete(a)
+                        #print "Hand has %d fingers, finger drawn: %s" % (len(fingers), finger.tip_position)
+            
+
+#
+#Start of stuff
+#
+
+root=Tk()
+canvas=Canvas(root,width=w,height=h,bg='white')
+canvas.pack()
+#
+# Graphics objects. 
+#
+
+key_width = 70
+key_height = 60
+circlediameter = 20
+keyspacing = 4
+btn_list = [
+['`','1','2','3','4','5','6','7','8','9','0','-','='],
+ ['*20','q','w','e','r','t','y','u','i','o','p','Backspace'],
+    ['*40','a','s','d','f','g','h','j','k','l',';','\'','Enter'],
+    ['Shift','z','x','c','v','b','n','m',',','.','/','Shift'],
+    ['*100','space']]
+
+ycorner=10
+for r in btn_list:
+    xcorner=10
+    for c in r:
+        if c[0]=='*':
+            xcorner+= int(''.join(map(str,c[1:])))#one liner to convert list to num
+            #specifies spacing used
+        elif c == 'space':
+            rect=canvas.create_rectangle(xcorner,ycorner,xcorner+key_width,ycorner+key_height,fill='gray',outline='black')
+            objt=canvas.create_text((key_width+2*xcorner)/2,(key_height+2*ycorner)/2,text=c,fill='white')
+            xcorner+=keyspacing+key_width
+        else:
+            rect=canvas.create_rectangle(xcorner,ycorner,xcorner+key_width,ycorner+key_height,fill='gray',outline='black')
+            objt=canvas.create_text((key_width+2*xcorner)/2,(key_height+2*ycorner)/2,text=c,fill='white')
+            xcorner+=keyspacing+key_width
+    ycorner+=keyspacing+key_height
+
+typed = Entry(root, bd =5, width=30)
+typed.pack()
+typed.place(relx=.45,rely=.9)
+listener = SampleListener()
+controller = Leap.Controller()
+
+# Have the sample listener receive events from the controller
+controller.add_listener(listener)
+# Gestures
+#
+# Callbacks.
+#
+##root.bind('<Down>',down)
+##root.bind('<Up>',up)
+##root.bind('<Right>',right)
+##root.bind('<Left>',left)
+root.bind('<q>',quit)
+
+
+#
+# Here we go.
+#
+root.mainloop()
